@@ -48,9 +48,8 @@ export class AxiosClient {
                 },
                 (error: { response: { status: any; data: { msg: any; message: any }; statusText: any }; message: any }) => {
                     const status = error.response?.status
-
                     if (status === 401 || status === 403) clearAccessToken()
-
+                    console.log('erro: ', error)
                     // showToast({
                     //     title: 'API Error',
                     //     description:
@@ -60,7 +59,8 @@ export class AxiosClient {
                     //         error?.response?.statusText ||
                     //         'Unknown error occurred'
                     // })
-                    return Promise.reject(error)
+                    // return Promise.reject(error)
+                    // return error.response
                 }
             )
         }

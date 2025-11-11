@@ -25,24 +25,34 @@ import { useNavigate } from 'react-router-dom';
 import type { EventDto, EventStatus } from '../../api/event/event.dto';
 import { EventApi } from '../../api/event/event';
 import EventFormDialog from '../../components/eventFormDialog';
+import type { EventResponse, EventListResponse } from '../../api/event/event.response';
 
 export default function AdminEventListPage() {
-    const queryClient = useQueryClient();
-    const navigate = useNavigate();
+    const queryClient = useQueryClient()
+    const navigate = useNavigate()
 
-    const [search, setSearch] = useState('');
-    const [status, setStatus] = useState<EventStatus | 'All'>('All');
-    const [deleteTarget, setDeleteTarget] = useState<EventDto | null>(null);
-    const [openForm, setOpenForm] = useState<{ open: boolean; event?: EventDto }>({ open: false });
-    const [password, setPassword] = useState('');
+    const [search, setSearch] = useState('')
+    const [status, setStatus] = useState<EventStatus | 'All'>('All')
+    const [deleteTarget, setDeleteTarget] = useState<EventDto | null>(null)
+    const [openForm, setOpenForm] = useState<{ open: boolean; event?: EventDto }>({ open: false })
+    const [password, setPassword] = useState('')
 
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [page, setPage] = useState(0)
+    const [rowsPerPage, setRowsPerPage] = useState(10)
 
-    const { data: events = [] } = useQuery({
-        queryKey: ['events'],
-        queryFn: () => EventApi.getList({}),
-    });
+    const { data, isLoading } = useQuery<EventListResponse>({
+        queryKey: ['events', page, rowsPerPage, search, status],
+        queryFn: () =>
+            EventApi.getList({
+                page: page + 1,
+                pageSize: rowsPerPage,
+                keyword: search || undefined,
+                status: status === 'All' ? undefined : status,
+            })
+    })
+
+    const events: EventResponse[] = data?.items ?? []
+    const total = data?.total ?? 0
 
     const filtered = useMemo(
         () =>
@@ -55,9 +65,13 @@ export default function AdminEventListPage() {
                         e.location.toLowerCase().includes(kw)
                     );
                 })
-                .sort((a, b) => a.startDate.localeCompare(b.startDate)),
+                .sort(
+                    (a, b) =>
+                        new Date(a.startDate).getTime() -
+                        new Date(b.startDate).getTime()
+                ),
         [events, search, status],
-    );
+    )
 
     useEffect(() => {
         setPage(0);
@@ -96,7 +110,7 @@ export default function AdminEventListPage() {
                     startIcon={<Add />}
                     onClick={() => setOpenForm({ open: true })}
                 >
-                    Create Button
+                    Create Event
                 </Button>
             </Stack>
 
@@ -145,7 +159,7 @@ export default function AdminEventListPage() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {paged.map((e) => (
+                        {paged.map((e: EventResponse) => (
                             <TableRow key={e.id} hover>
                                 <TableCell
                                     sx={{ cursor: 'pointer' }}

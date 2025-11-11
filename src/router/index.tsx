@@ -26,7 +26,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/user',
-    element: <AdminLayout />,
+    // element: <AdminLayout />,
     children: [
       { index: true, element: <UserEventListPage /> },
       { path: 'events/:id', element: <UserEventDetailPage /> }
