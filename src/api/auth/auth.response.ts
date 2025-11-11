@@ -1,3 +1,5 @@
 export interface LoginResponse {
-    accessToken: string
+    accessToken: string,
+    status?: number,
+    message?: string
 }

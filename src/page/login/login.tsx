@@ -28,6 +28,8 @@ export default function LoginPage() {
             setLoading(true)
 
             const res = await AuthApi.login(values)
+            if (res?.status === -1) return setError(res?.message || 'Login failed. Please check credentials.')
+
             login(res.accessToken)
 
             navigate('/admin')
@@ -37,7 +39,6 @@ export default function LoginPage() {
             )
         } finally {
             setLoading(false)
-            navigate('/admin')
         }
     };
 

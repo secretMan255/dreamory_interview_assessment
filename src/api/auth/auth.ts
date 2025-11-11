@@ -21,6 +21,6 @@ export class AuthApi {
     }
 
     public static async register(dto: RegisterDto) {
-        await AxiosClient.getInstance().post('/auth/login', dto)
+        await AxiosClient.getInstance().post('/auth/register', dto)
     }
 }
