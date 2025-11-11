@@ -16,7 +16,7 @@ import type { EventDto, EventStatus } from '../api/event/event.dto';
 import { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { data } from 'react-router-dom';
+import { fileToBase64 } from '../utils';
 
 type FormInputs = {
     name: string
@@ -24,7 +24,7 @@ type FormInputs = {
     endDate: string
     location: string
     status: EventStatus,
-    thumbnail: FileList
+    thumbnail?: FileList
 }
 
 export default function EventFormDialog(props: {
@@ -41,8 +41,8 @@ export default function EventFormDialog(props: {
         if (event) {
             reset({
                 name: event.name,
-                startDate: event.startDate,
-                endDate: event.endDate,
+                startDate: event.startDate ? event.startDate.slice(0, 10) : '',
+                endDate: event.endDate ? event.endDate.slice(0, 10) : '',
                 location: event.location,
                 status: event.status
             })
@@ -59,31 +59,41 @@ export default function EventFormDialog(props: {
 
     const mutation = useMutation({
         mutationFn: async (data: FormInputs) => {
-            const file = data.thumbnail?.[0] || null;
+            const file = data.thumbnail?.[0];
+
+            let thumbnail: string | undefined = event?.thumbnail || undefined;
+
+            if (file) {
+                thumbnail = await fileToBase64(file);
+            }
+
             if (event) {
-                return await EventApi.updateEvent(Number(event.id), {
+                // 更新
+                return EventApi.updateEvent(Number(event.id), {
                     name: data.name,
                     startDate: data.startDate,
                     endDate: data.endDate,
                     location: data.location,
                     status: data.status,
-                    thumbnail: file,
+                    thumbnail: thumbnail ?? null,
                 });
             }
+
+            // 新增
             return EventApi.createEvent({
                 name: data.name,
                 startDate: data.startDate,
                 endDate: data.endDate,
                 location: data.location,
-                status: 'Ongoing',
-                thumbnail: file,
+                status: data.status,
+                thumbnail: thumbnail ?? null,
             });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['events'] });
             onClose();
         },
-    })
+    });
 
     const onSubmit = (data: FormInputs) => {
         mutation.mutate(data)
@@ -129,6 +139,14 @@ export default function EventFormDialog(props: {
                                 <MenuItem value="Completed">Completed</MenuItem>
                             </Select>
                         </FormControl>
+                    )}
+
+                    {event?.thumbnail && (
+                        <img
+                            src={String(event.thumbnail)}
+                            alt="Event Thumbnail"
+                            style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }}
+                        />
                     )}
                     <Button variant="outlined" component="label">
                         Upload Thumbnail

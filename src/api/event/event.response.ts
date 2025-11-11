@@ -1,10 +1,16 @@
-import type { EventStatus } from './event.dto'
+import type { EventStatus } from './event.dto';
 
 export interface EventResponse {
-    id: number
-    name: string
-    startDate: string
-    endDate: string
-    location: string
-    status: EventStatus
+    id: number;
+    name: string;
+    startDate: string;
+    endDate: string;
+    location: string;
+    thumbnail: string | null;
+    status: EventStatus;
+}
+
+export interface EventListResponse {
+    items: EventResponse[];
+    total: number;
 }

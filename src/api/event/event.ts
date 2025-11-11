@@ -1,6 +1,13 @@
 import { AxiosClient } from '../axios'
-import type { EventDto, EventPayloadDto } from './event.dto'
-import type { EventResponse } from './event.response'
+import type { EventDto, EventPayloadDto, EventStatus } from './event.dto'
+import type { EventListResponse, EventResponse } from './event.response'
+
+export interface GetEventListParams {
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+    status?: EventStatus;
+}
 
 export class EventApi {
     private static Instance: EventApi
@@ -15,13 +22,15 @@ export class EventApi {
         return this.Instance
     }
 
-    public static async getList(dto: EventDto): Promise<EventResponse[]> {
-        const res = await AxiosClient.getInstance().get('/events', { params: dto })
-        return res.data
+    public static async getList(dto: GetEventListParams): Promise<EventListResponse> {
+        return await AxiosClient.getInstance().get('/event', { params: dto })
+        // const res = await AxiosClient.getInstance().get('/event', { params: dto })
+        // console.log('res: ', res)
+        // return res
     }
 
     public static async getEvent(id: number): Promise<EventResponse> {
-        const res = await AxiosClient.getInstance().get(`/events/${id}`)
+        const res = await AxiosClient.getInstance().get(`/event/${id}`)
         return res.data
     }
 
@@ -33,7 +42,7 @@ export class EventApi {
         form.append('location', payload.location)
         if (payload.thumbnail) form.append('thumbnail', payload.thumbnail)
 
-        const res = await AxiosClient.getInstance().post('/create', form)
+        const res = await AxiosClient.getInstance().post('/event/create', form)
         return res.data
     }
 
@@ -46,13 +55,13 @@ export class EventApi {
         if (payload.status) form.append('status', payload.status)
         if (payload.thumbnail) form.append('thumbnail', payload.thumbnail)
 
-        const res = await AxiosClient.getInstance().put(`/events/${id}`, form)
+        const res = await AxiosClient.getInstance().put(`/event/${id}`, form)
         return res.data
     }
 
     public static async delete(id: number, password: string) {
         const res = await AxiosClient.getInstance().request({
-            url: `/events/${id}`,
+            url: `/event/${id}`,
             method: 'DELETE',
             data: { password }
         })

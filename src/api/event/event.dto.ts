@@ -7,7 +7,7 @@ export interface EventDto {
     endDate?: string
     location?: string
     status?: EventStatus
-    thumbnailUrl?: string
+    thumbnail?: string | null
 }
 
 export interface EventPayloadDto {
@@ -16,6 +16,6 @@ export interface EventPayloadDto {
     endDate: string
     location: string
     status: EventStatus
-    thumbnail: File | null
+    thumbnail: string | null
 }
 
