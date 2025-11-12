@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { EventApi } from '../../api/event/event';
-import { Box, Button, Card, CardActionArea, CardActions, CardContent, CardMedia, Chip, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead, TablePagination, TableRow, TextField, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Card, CardActionArea, CardContent, CardMedia, Chip, MenuItem, Select, Stack, TablePagination, TextField, Typography, useMediaQuery, useTheme } from '@mui/material';
 import type { EventDto, EventStatus } from '../../api/event/event.dto';
-import { renderStatusChip } from '../../utils';
+import { dateConverter, renderStatusChip } from '../../utils';
+import type { EventListResponse, EventResponse } from '../../api/event/event.response';
 
 export default function UserEventListPage() {
     const queryClient = useQueryClient()
@@ -17,30 +18,47 @@ export default function UserEventListPage() {
     const [page, setPage] = useState(0)
     const [rowsPerPage, setRowsPerPage] = useState(10)
 
-    const { data: events = [], isLoading } = useQuery({
-        queryKey: ['user-event'],
-        queryFn: () => EventApi.getList({})
+    const { data, isLoading } = useQuery<EventListResponse>({
+        queryKey: ['events', page, rowsPerPage, search, status],
+        queryFn: () =>
+            EventApi.getList({
+                page: page + 1,
+                pageSize: rowsPerPage,
+                keyword: search || undefined,
+                status: status === 'All' ? undefined : status,
+            })
     })
+
+    const events: EventResponse[] = data?.items ?? []
+    const total = data?.total ?? 0
 
     const filtered = useMemo(
         () =>
             events
                 .filter((e) => (status === 'All' ? true : e.status === status))
                 .filter((e) => {
-                    const kw = search.toLowerCase().trim()
-                    if (!kw) return true
+                    const kw = search.toLowerCase();
                     return (
-                        e.name.toLowerCase().includes(kw) || e.location.toLocaleLowerCase().includes(kw)
-                    )
+                        e.name.toLowerCase().includes(kw) ||
+                        e.location.toLowerCase().includes(kw)
+                    );
                 })
-                .sort((a, b) => a.startDate.localeCompare(b.startDate)),
-        [events, search, status]
+                .sort(
+                    (a, b) =>
+                        new Date(a.startDate).getTime() -
+                        new Date(b.startDate).getTime()
+                ),
+        [events, search, status],
     )
 
+    useEffect(() => {
+        setPage(0);
+    }, [search, status]);
+
     const paged = useMemo(() => {
-        const start = page * rowsPerPage
-        return filtered.slice(start, start + rowsPerPage)
-    }, [filtered, page, rowsPerPage])
+        const start = page * rowsPerPage;
+        return filtered.slice(start, start + rowsPerPage);
+    }, [filtered, page, rowsPerPage]);
 
     const handleViewDetail = (event: EventDto) => {
         navigate(`/user/events/${event.id}`)
@@ -54,12 +72,24 @@ export default function UserEventListPage() {
                 boxSizing: 'border-box',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 2
+                gap: 2,
+                p: { xs: 2, sm: 3 },
+                border: 1,
+                borderColor: 'divider'
             }}
         >
-            <Stack spacing={0.5}>
+            <Stack direction='row'>
+                <Button
+                    variant='outlined'
+                    onClick={() => navigate('/admin')}
+                >
+                    Admin Portal
+                </Button>
+            </Stack>
+
+            <Stack direction='row' spacing={0.5}>
                 <Typography variant="h5" fontWeight={600}>
-                    Events
+                    User Events Page
                 </Typography>
             </Stack>
 
@@ -94,7 +124,9 @@ export default function UserEventListPage() {
                     borderRadius: 1,
                     p: 2,
                     boxSizing: 'border-box',
-                    overflow: 'auto'
+                    overflow: 'auto',
+                    border: 1,
+                    borderColor: 'divider'
                 }}
             >
                 {isLoading ? (
@@ -132,7 +164,7 @@ export default function UserEventListPage() {
                                     <Box sx={{ position: 'relative', width: '100%' }}>
                                         <CardMedia
                                             component='img'
-                                            image={e.thumbnail}
+                                            image={e.thumbnail ?? 'https://placehold.co/600x400'}
                                             alt={e.name}
                                             sx={{
                                                 height: 140,
@@ -146,32 +178,25 @@ export default function UserEventListPage() {
                                         sx={{
                                             flex: 1,
                                             width: '100%',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: 0.5,
+                                            display: 'grid',
+                                            gridTemplateRows: 'auto auto 1fr auto',
+                                            rowGap: 0.5,
                                         }}
                                     >
-                                        <Typography
-                                            variant="subtitle1"
-                                            fontWeight={600}
-                                            noWrap
-                                            title={e.name}
-                                        >
+                                        <Typography variant="subtitle1" fontWeight={600} noWrap title={e.name}>
                                             {e.name}
                                         </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                            noWrap
-                                            title={e.location}
-                                        >
+
+                                        <Typography variant="body2" color="text.secondary" noWrap title={e.location}>
                                             {e.location}
                                         </Typography>
+
                                         <Typography
                                             variant="caption"
                                             color="text.secondary"
+                                            sx={{ justifySelf: 'end', textAlign: 'left' }}
                                         >
-                                            {e.startDate} - {e.endDate}
+                                            {dateConverter(e.startDate)}
                                         </Typography>
                                     </CardContent>
                                 </CardActionArea>
@@ -180,7 +205,6 @@ export default function UserEventListPage() {
                     </Box>
                 )}
             </Box>
-
             <TablePagination
                 component="div"
                 count={filtered.length}

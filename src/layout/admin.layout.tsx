@@ -30,11 +30,8 @@ export default function AdminLayout() {
             <AppBar position="static" color="secondary">
                 <Toolbar>
                     <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                        Dreamory Admin/User Portal
+                        Dreamory Admin Portal
                     </Typography>
-                    <Button color="inherit" component={Link} to="/admin">
-                        Admin Events
-                    </Button>
                     <Button color="inherit" component={Link} to="/user">
                         User Events
                     </Button>

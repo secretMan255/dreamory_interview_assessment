@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Box,
@@ -7,6 +7,7 @@ import {
     MenuItem,
     Select,
     Stack,
+    TableSortLabel,
     Table,
     TableBody,
     TableCell,
@@ -19,6 +20,7 @@ import {
     DialogContent,
     DialogActions,
     TablePagination,
+    Chip,
 } from '@mui/material';
 import { Delete, Edit, Add } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +28,10 @@ import type { EventDto, EventStatus } from '../../api/event/event.dto';
 import { EventApi } from '../../api/event/event';
 import EventFormDialog from '../../components/eventFormDialog';
 import type { EventResponse, EventListResponse } from '../../api/event/event.response';
+import { renderStatusChip } from '../../utils';
+
+type Order = 'asc' | 'desc'
+type OrderBy = 'name' | 'startDate' | 'endDate' | 'location' | 'status'
 
 export default function AdminEventListPage() {
     const queryClient = useQueryClient()
@@ -40,57 +46,46 @@ export default function AdminEventListPage() {
     const [page, setPage] = useState(0)
     const [rowsPerPage, setRowsPerPage] = useState(10)
 
+    const [orderBy, setOrderBy] = useState<OrderBy>('startDate')
+    const [order, setOrder] = useState<Order>('asc')
+
     const { data, isLoading } = useQuery<EventListResponse>({
-        queryKey: ['events', page, rowsPerPage, search, status],
+        queryKey: ['events', page, rowsPerPage, search, status, orderBy, order],
         queryFn: () =>
             EventApi.getList({
                 page: page + 1,
                 pageSize: rowsPerPage,
                 keyword: search || undefined,
                 status: status === 'All' ? undefined : status,
-            })
+                orderBy,
+                order,
+            }),
     })
 
     const events: EventResponse[] = data?.items ?? []
     const total = data?.total ?? 0
 
-    const filtered = useMemo(
-        () =>
-            events
-                .filter((e) => (status === 'All' ? true : e.status === status))
-                .filter((e) => {
-                    const kw = search.toLowerCase();
-                    return (
-                        e.name.toLowerCase().includes(kw) ||
-                        e.location.toLowerCase().includes(kw)
-                    );
-                })
-                .sort(
-                    (a, b) =>
-                        new Date(a.startDate).getTime() -
-                        new Date(b.startDate).getTime()
-                ),
-        [events, search, status],
-    )
-
     useEffect(() => {
-        setPage(0);
-    }, [search, status]);
-
-    const paged = useMemo(() => {
-        const start = page * rowsPerPage;
-        return filtered.slice(start, start + rowsPerPage);
-    }, [filtered, page, rowsPerPage]);
+        setPage(0)
+    }, [search, status, orderBy, order])
 
     const deleteMutation = useMutation({
         mutationFn: (payload: { id: number; password: string }) =>
             EventApi.delete(payload.id, payload.password),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['events'] });
-            setDeleteTarget(null);
-            setPassword('');
+            queryClient.invalidateQueries({ queryKey: ['events'] })
+            setDeleteTarget(null)
+            setPassword('')
         },
-    });
+    })
+
+    const handleRequestSort = (prop: OrderBy) => {
+        if (orderBy === prop) setOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+        else {
+            setOrderBy(prop)
+            setOrder('asc')
+        }
+    }
 
     return (
         <Box
@@ -144,22 +139,74 @@ export default function AdminEventListPage() {
                 <Table
                     size="small"
                     stickyHeader
-                    sx={{
-                        minWidth: 650,
-                    }}
+                    sx={{ minWidth: 650 }}
                 >
                     <TableHead>
                         <TableRow>
-                            <TableCell>Name</TableCell>
-                            <TableCell>Start Date</TableCell>
-                            <TableCell>End Date</TableCell>
-                            <TableCell>Location</TableCell>
-                            <TableCell>Status</TableCell>
+                            <TableCell sortDirection={orderBy === 'name' ? order : false}>
+                                <TableSortLabel
+                                    active={orderBy === 'name'}
+                                    direction={orderBy === 'name' ? order : 'asc'}
+                                    onClick={() => handleRequestSort('name')}
+                                >
+                                    Name
+                                </TableSortLabel>
+                            </TableCell>
+
+                            <TableCell sortDirection={orderBy === 'startDate' ? order : false}>
+                                <TableSortLabel
+                                    active={orderBy === 'startDate'}
+                                    direction={orderBy === 'startDate' ? order : 'asc'}
+                                    onClick={() => handleRequestSort('startDate')}
+                                >
+                                    Start Date
+                                </TableSortLabel>
+                            </TableCell>
+
+                            <TableCell sortDirection={orderBy === 'endDate' ? order : false}>
+                                <TableSortLabel
+                                    active={orderBy === 'endDate'}
+                                    direction={orderBy === 'endDate' ? order : 'asc'}
+                                    onClick={() => handleRequestSort('endDate')}
+                                >
+                                    End Date
+                                </TableSortLabel>
+                            </TableCell>
+
+                            <TableCell sortDirection={orderBy === 'location' ? order : false}>
+                                <TableSortLabel
+                                    active={orderBy === 'location'}
+                                    direction={orderBy === 'location' ? order : 'asc'}
+                                    onClick={() => handleRequestSort('location')}
+                                >
+                                    Location
+                                </TableSortLabel>
+                            </TableCell>
+
+                            <TableCell sortDirection={orderBy === 'status' ? order : false}>
+                                <TableSortLabel
+                                    active={orderBy === 'status'}
+                                    direction={orderBy === 'status' ? order : 'asc'}
+                                    onClick={() => handleRequestSort('status')}
+                                >
+                                    Status
+                                </TableSortLabel>
+                            </TableCell>
+
                             <TableCell align="right">Actions</TableCell>
                         </TableRow>
                     </TableHead>
+
                     <TableBody>
-                        {paged.map((e: EventResponse) => (
+                        {isLoading && (
+                            <TableRow>
+                                <TableCell colSpan={6} align="center">
+                                    Loading...
+                                </TableCell>
+                            </TableRow>
+                        )}
+
+                        {!isLoading && events.map((e: EventResponse) => (
                             <TableRow key={e.id} hover>
                                 <TableCell
                                     sx={{ cursor: 'pointer' }}
@@ -170,7 +217,9 @@ export default function AdminEventListPage() {
                                 <TableCell>{e.startDate}</TableCell>
                                 <TableCell>{e.endDate}</TableCell>
                                 <TableCell>{e.location}</TableCell>
-                                <TableCell>{e.status}</TableCell>
+                                <TableCell>
+                                    <Chip label={e.status} size="small" color={renderStatusChip(e.status)} />
+                                </TableCell>
                                 <TableCell align="right">
                                     <IconButton
                                         size="small"
@@ -188,7 +237,7 @@ export default function AdminEventListPage() {
                             </TableRow>
                         ))}
 
-                        {filtered.length === 0 && (
+                        {!isLoading && events.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={6} align="center">
                                     No events found
@@ -201,7 +250,7 @@ export default function AdminEventListPage() {
 
             <TablePagination
                 component="div"
-                count={filtered.length}
+                count={total}
                 page={page}
                 onPageChange={(_, newPage) => setPage(newPage)}
                 rowsPerPage={rowsPerPage}

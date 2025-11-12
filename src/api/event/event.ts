@@ -1,13 +1,8 @@
 import { AxiosClient } from '../axios'
-import type { EventDto, EventPayloadDto, EventStatus } from './event.dto'
+import type { EventPayloadDto, GetEventListParams } from './event.dto'
 import type { EventListResponse, EventResponse } from './event.response'
 
-export interface GetEventListParams {
-    page?: number;
-    pageSize?: number;
-    keyword?: string;
-    status?: EventStatus;
-}
+
 
 export class EventApi {
     private static Instance: EventApi
@@ -24,14 +19,10 @@ export class EventApi {
 
     public static async getList(dto: GetEventListParams): Promise<EventListResponse> {
         return await AxiosClient.getInstance().get('/event', { params: dto })
-        // const res = await AxiosClient.getInstance().get('/event', { params: dto })
-        // console.log('res: ', res)
-        // return res
     }
 
     public static async getEvent(id: number): Promise<EventResponse> {
-        const res = await AxiosClient.getInstance().get(`/event/${id}`)
-        return res.data
+        return await AxiosClient.getInstance().get(`/event/${id}`)
     }
 
     public static async createEvent(payload: EventPayloadDto) {
@@ -40,6 +31,7 @@ export class EventApi {
         form.append('startDate', payload.startDate)
         form.append('endDate', payload.endDate)
         form.append('location', payload.location)
+        form.append('description', payload.description)
         if (payload.thumbnail) form.append('thumbnail', payload.thumbnail)
 
         const res = await AxiosClient.getInstance().post('/event/create', form)
@@ -52,6 +44,7 @@ export class EventApi {
         form.append('startDate', payload.startDate)
         form.append('endDate', payload.endDate)
         form.append('location', payload.location)
+        form.append('description', payload.description)
         if (payload.status) form.append('status', payload.status)
         if (payload.thumbnail) form.append('thumbnail', payload.thumbnail)
 

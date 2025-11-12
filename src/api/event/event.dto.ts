@@ -6,6 +6,7 @@ export interface EventDto {
     startDate?: string
     endDate?: string
     location?: string
+    description?: string
     status?: EventStatus
     thumbnail?: string | null
 }
@@ -15,7 +16,16 @@ export interface EventPayloadDto {
     startDate: string
     endDate: string
     location: string
+    description: string
     status: EventStatus
     thumbnail: string | null
 }
 
+export interface GetEventListParams {
+    page?: number
+    pageSize?: number
+    keyword?: string
+    status?: EventStatus
+    orderBy?: 'name' | 'startDate' | 'endDate' | 'location' | 'status'
+    order?: 'asc' | 'desc'
+}
